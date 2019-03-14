@@ -1,7 +1,9 @@
 <template>
   <div>
     <vue-router-slide class="content">
-      <router-view></router-view>
+      <template slot-scope="slotProps">
+        <router-view v-bind:slotProps="slotProps"></router-view>
+      </template>
     </vue-router-slide>
   </div>
 </template>
@@ -47,7 +49,7 @@ export default {
 h4 {
   color: #ffffff;
 }
-a {
+a,p {
   display: block;
   color: #fff;
   font-size: 20px;
@@ -64,7 +66,7 @@ a {
   background-color: hsl(133, 93%, 83%)
 }
 .page3 {
-  background-color: hsl(59, 93%, 83%)
+  background-color: hsl(55, 85%, 68%)
 }
 .page4 {
   background-color: hsl(315, 93%, 83%)

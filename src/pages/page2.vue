@@ -5,5 +5,12 @@
     <router-link to="/page1">Page1</router-link>
     <router-link to="/page3">Page3</router-link>
     <router-link to="/page4">Page4</router-link>
+    <p>当前堆栈{{slotProps.stack}}</p>
   </div>
 </template>
+<script>
+export default {
+  props: ['slotProps']
+}
+</script>
+

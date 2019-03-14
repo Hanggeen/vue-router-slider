@@ -117,11 +117,11 @@ export default {
       if (this.allowLeftSlide) {
         this.hadCallGoBack = false
 
-        this.leaveDom.setAttribute('style','')
-        this.enterDom.setAttribute('style','')
-        this.leaveDom.classList.add('backward-before-leave')
-        this.enterDom.classList.add('backward-before-enter')
+        this.leaveDom.classList.add('backward-before-manual-leave')
+        this.enterDom.classList.add('backward-before-manual-leave')
         setTimeout(() => {
+          this.leaveDom.setAttribute('style','')
+          this.enterDom.setAttribute('style','')
           this.leaveDom.classList.add('backward-leave2')
           this.enterDom.classList.add('backward-enter2')
         }, 20)
@@ -130,7 +130,7 @@ export default {
           this.enterDone()
           this.leaveDom.classList.remove('backward-leave2')
           this.enterDom.classList.remove('backward-enter2')
-        }, 500)
+        }, 250)
 
         // 恢复
         this.startX = 0
@@ -261,6 +261,16 @@ export default {
   left: 0;
   transition: all .5s;
 }
+
+
+.backward-before-manual-enter,
+.backward-before-manual-leave{
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: all .25s;
+}
+
 
 .forward-before-enter {
   z-index: 2;

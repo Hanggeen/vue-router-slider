@@ -1,21 +1,15 @@
-# slide
+## vue-router-slider
 
-> better slide in vue-router
+目前网上的vue-router动画插件，基本不支持手势操作返回和取消返回
 
-## Build Setup
+业务需求，要在app内嵌webview显示单页面应用，全面模拟原生操作，需要支持手势返回和取消返回，全面模拟iOS效果
 
-``` bash
-# install dependencies
-npm install
+（注意：在最左侧50px触摸的时候，会触发浏览器的返回事件，因此客户端需拦截此事件）
 
-# serve with hot reload at localhost:8080
-npm run dev
+#### 预览效果：
 
-# build for production with minification
-npm run build
+点击效果：
+![](./doc/点击.gif)
 
-# build for production and view the bundle analyzer report
-npm run build --report
-```
-
-For a detailed explanation on how things work, check out the [guide](http://vuejs-templates.github.io/webpack/) and [docs for vue-loader](http://vuejs.github.io/vue-loader).
+触摸返回和取消返回：
+![](./doc/触摸.gif)

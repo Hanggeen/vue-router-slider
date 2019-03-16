@@ -8,7 +8,7 @@
       </a>
     </div>
     <p>Vue单页面路由滑动插件，支持手势返回</p>
-    <p class="title">当前页面：Page0 <span>当前堆栈:{{slotProps.stack}}</span></p>
+    <p class="title">当前页面：Page0 <span>当前堆栈:{{stack}}</span></p>
     <div class="links">
       <p>你可以点击下面前往其他page</p>
       <p>Page0</p>
@@ -16,13 +16,17 @@
       <router-link to="/page2">Page2</router-link>
       <router-link to="/page3">Page3</router-link>
       <router-link to="/page4">Page4</router-link>
-      <p @click="$router.go(-1)" v-if="slotProps.stack !== 0">返回上一级</p>
+      <p @click="$router.go(-1)" v-if="stack !== 0">返回上一级</p>
     </div>
   </div>
 </template>
 <script>
 export default {
-  props: ['slotProps']
+  props: ['slotProps'],
+  data: function () {
+    return {
+      stack: this.slotProps.stack
+    }
+  }
 }
 </script>
-

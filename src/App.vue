@@ -87,7 +87,7 @@ textarea {
   vertical-align: middle;
   width: 30px;
   height: 30px;
-  background-image: url(https://cn.vuejs.org/images/logo.png);
+  background-image: url(https://www.vue-js.com/public/images/vue.png);
   background-size: 100% 100%;
 }
 .page > .top span {

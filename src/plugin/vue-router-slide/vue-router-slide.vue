@@ -24,21 +24,25 @@ export default {
       startY: 0,            // 开始触摸Y坐标
       disX: 0,              // 滑动距离X
       disY: 0,              // 滑动距离Y
-      startFromLeft: false,      // 是否是左滑返回
-      allowLeftSlide: 0,// 是否允许左滑返回，主要拦截上下滑动
+      touchStartFromAbleArea: false, // 是否是左滑返回
+      isSlideToRightSlide: 0,// 是否允许左滑返回，主要拦截上下滑动，0为未判断，1为往右滑，-1为非往右
       enterDone: null,      // 进入完成done
       leaveDone: null,      // 退出完成done
-      forward: true,         // 这次的路由变化是前进还是后退
+      forward: true,        // 这次的路由变化是前进还是后退
       manual: false,        // 这次的路由变化是不是手动
-      rect: {},
-      hadCallGoBack: false,
-      enterDom: null,
-      leaveDom: null,
-      stack: 0,
+      rect: {},             // 当前屏幕的信息
+      hadCallGoBack: false, // 是否已经调用了路由返回操作
+      enterDom: null,       // 即将进入的dom
+      leaveDom: null,       // 即将离开的dom
+      stack: 0,             // 当前页面栈
+      ableRange: 0.4,       // 屏幕左边滑动的有效区域
+      cancelGoBack: false,  // 是否中途取消返回
     }
   },
   mounted () {
     const self = this;
+
+    // 拦截go(-1)，如果当前页面栈为0，不给于后退
     this.$router.go = function go (n) {
       if (self.stack > 0) {
         if (n == -1 || n == '-1') {
@@ -58,35 +62,35 @@ export default {
     touchStart (ev) {
       ev = ev || event
       // 如果是从边缘开始滑动，判定为左滑返回
-      if (ev.touches.length === 1 && ev.touches[0].clientX > this.rect.left && ev.touches[0].clientX < (this.rect.left+20)) {
+      if (ev.touches.length === 1 &&
+          ev.touches[0].clientX > this.rect.left &&
+          ev.touches[0].clientX < (this.rect.left+this.rect.width*this.ableRange) &&
+          this.stack > 0) {
         this.startX = ev.touches[0].clientX
         this.startY = ev.touches[0].clientY
-        ev.preventDefault()
-        ev.stopPropagation()
-        this.startFromLeft = true
+        this.touchStartFromAbleArea = true
       } else {
-        this.startFromLeft = false
+        this.touchStartFromAbleArea = false
       }
     },
     touchMove (ev) {
       ev = ev || event
       // 开始判断
-      if (this.startFromLeft) {
+      if (this.touchStartFromAbleArea) {
 
         // 计算此刻滑动距离
         this.disX = this.startX - ev.touches[0].clientX
         this.disY = this.startY - ev.touches[0].clientY
-        console.log(Math.abs(this.disX) , Math.abs(this.disY))
         // 如果当前是未判断是否左滑返回的，则时刻判断横向距离和纵向距离
-        if (this.allowLeftSlide === 0) {
+        if (this.isSlideToRightSlide === 0) {
           if (Math.abs(this.disX) > Math.abs(this.disY)) {
-            this.allowLeftSlide = 1
+            this.isSlideToRightSlide = 1
           } else {
-            this.allowLeftSlide = -1
+            this.isSlideToRightSlide = -1
           }
         }
 
-        if (this.allowLeftSlide === 1) {
+        if (this.isSlideToRightSlide === 1) {
           // 阻止默认事件
           ev.preventDefault()
           ev.stopPropagation()
@@ -98,124 +102,197 @@ export default {
           if (!this.hadCallGoBack) {
             this.hadCallGoBack = true
             this.$router.go('-1')
+          } else {
+            // 这里部分不应该重复操作，待优化
+            this.leaveDom = this.$refs.vueRuterSlide.children[0]
+            this.enterDom = this.$refs.vueRuterSlide.children[1]
+            this.leaveDom.style.transform = `translate3d(${Math.abs(this.disX)}px, 0px, 0px)`
+            this.leaveDom.style.zIndex = '99'
+            if (this.enterDom) {
+              this.enterDom.style.transform = `translate3d(${(Math.abs(this.disX)-320)/2}px, 0px, 0px)`
+              this.enterDom.style.transform = '-1'
+            }
           }
-
-          this.leaveDom = this.$refs.vueRuterSlide.children[0]
-          this.enterDom = this.$refs.vueRuterSlide.children[1]
-
-          this.leaveDom.style.transform = `translate3d(${Math.abs(this.disX)}px, 0px, 0px)`
-          this.leaveDom.style.zIndex = '99'
-          this.enterDom.style.transform = `translate3d(${(Math.abs(this.disX)-320)/2}px, 0px, 0px)`
-          this.enterDom.style.transform = '-1'
 
         }
 
       }
     },
     touchEnd (e) {
-      console.log(e)
-      if (this.allowLeftSlide) {
-        this.hadCallGoBack = false
+      if (this.isSlideToRightSlide == 1) {
 
-        this.leaveDom.classList.add('backward-before-manual-leave')
-        this.enterDom.classList.add('backward-before-manual-leave')
-        setTimeout(() => {
-          this.leaveDom.setAttribute('style','')
-          this.enterDom.setAttribute('style','')
-          this.leaveDom.classList.add('backward-leave2')
-          this.enterDom.classList.add('backward-enter2')
-        }, 20)
-        setTimeout(() => {
-          this.leaveDone()
-          this.enterDone()
-          this.leaveDom.classList.remove('backward-leave2')
-          this.enterDom.classList.remove('backward-enter2')
-        }, 250)
+        // 左滑是否大于一半
+        if (Math.abs(this.disX) > this.rect.width/2) {
 
-        // 恢复
-        this.startX = 0
-        this.startY = 0
-        this.disX = 0
-        this.disY = 0
-        this.startFromLeft = false
-        this.allowLeftSlide = 0
+          this.leaveDom.classList.add('transition-all-250', 'high-z-index')
+          this.enterDom.classList.add('transition-all-250', 'low-z-index')
 
-        this.forward = true
-        this.manual = false
+          setTimeout(() => {
+            this.leaveDom.setAttribute('style','')
+            this.enterDom.setAttribute('style','')
+            this.leaveDom.classList.add('transform100')
+            this.enterDom.classList.add('transform0')
+          }, 20)
+          setTimeout(() => {
+            this.leaveDone()
+            this.enterDone()
+            this.leaveDom.classList.remove('position-absolute', 'transition-all-250','high-z-index', 'low-z-index', 'transform0', 'transform-50', 'transform100')
+            this.enterDom.classList.remove('position-absolute', 'transition-all-250','high-z-index', 'low-z-index', 'transform0', 'transform-50', 'transform100')
+          }, 250)
 
-        this.hadCallGoBack = false
+          // 恢复
+          this.startX = 0
+          this.startY = 0
+          this.disX = 0
+          this.disY = 0
+          this.touchStartFromAbleArea = false
+
+          this.forward = true
+          this.manual = false
+
+          this.hadCallGoBack = false
+          this.isSlideToRightSlide = 0
+        } else {
+          this.cancelGoBack = true;
+          this.manual = true;
+          this.$router.go(1)
+          this.stack += 2
 
 
+          this.hadCallGoBack = false
+
+          this.leaveDom = this.$refs.vueRuterSlide.children[0]
+          this.enterDom = this.$refs.vueRuterSlide.children[1]
+          this.leaveDom.classList.add('ori-leave')
+          this.enterDom.classList.add('ori-enter')
+          this.leaveDom.classList.add('transition-all-250', 'high-z-index')
+          this.enterDom.classList.add('transition-all-250', 'low-z-index')
+
+
+          setTimeout(() => {
+              this.leaveDom = this.$refs.vueRuterSlide.children[0]
+              this.enterDom = this.$refs.vueRuterSlide.children[1]
+              this.enterDom.style.transform = `translate3d(${Math.abs(this.disX)}px, 0px, 0px)`
+              this.leaveDom.style.transform = `translate3d(${(Math.abs(this.disX)-320)/2}px, 0px, 0px)`
+              this.enterDom.classList.add('transition-all-250', 'high-z-index')
+              this.leaveDom.classList.add('transition-all-250', 'low-z-index')
+              this.$nextTick(() => {
+                this.enterDom.style.transform = `translate3d(0px, 0px, 0px)`
+                this.leaveDom.style.transform = `translate3d(-50%, 0px, 0px)`
+              })
+          }, 20)
+
+          setTimeout(() => {
+            // alert(this.enterDom.classList)
+            this.leaveDone()
+            this.enterDone()
+            this.leaveDom.classList.remove('position-absolute', 'transition-all-250','high-z-index', 'low-z-index', 'transform0', 'transform-50', 'transform100')
+            this.enterDom.classList.remove('position-absolute', 'transition-all-250','high-z-index', 'low-z-index', 'transform0', 'transform-50', 'transform100')
+            this.enterDom.style = ``
+            this.enterDom.style = ``
+            this.disX = 0
+            this.disY = 0
+            // 恢复
+            this.startX = 0
+            this.startY = 0
+            this.touchStartFromAbleArea = false
+
+            this.forward = true
+            this.manual = false
+
+            this.hadCallGoBack = false
+            this.isSlideToRightSlide = 0
+          }, 270)
+        }
       }
+      this.isSlideToRightSlide = 0
     },
     beforeEnter (el) {
       console.log('进入之前')
+
+      // 如果不是手动的
+      if (!this.manual) {
+        // 如果是前进
+        if (this.forward) {
+          el.classList.add('position-absolute', 'transition-all-500', 'transform100', 'high-z-index')
+        } else {
+          el.classList.add('position-absolute', 'transition-all-500', 'transform-50', 'low-z-index')
+        }
+      } else {
+        el.classList.add('position-absolute')
+        el.style.transform = `translate3d(${Math.abs(this.disX)}px, 0px, 0px)`
+      }
+    },
+    beforeLeave (el) {
+      console.log('离开之前')
+
+      // 如果不是手动的
       if (!this.manual) {
         if (this.forward) {
-          el.classList.add('forward-before-enter')
+          el.classList.add('position-absolute', 'transition-all-500', 'transform0', 'low-z-index')
         } else {
-          el.classList.add('backward-before-enter')
+          el.classList.add('position-absolute', 'transition-all-500', 'transform0', 'high-z-index')
         }
+      } else {
+        el.classList.add('position-absolute')
       }
     },
     enter (el, done) {
       console.log('进入')
+
+      // 将完成钩子赋值给实例
       this.enterDone = done;
+
       if (!this.manual) {
         setTimeout(() => {
-          if (this.forward) {
-            el.classList.add('forward-enter')
-          } else {
-            el.classList.add('backward-enter')
-          }
+          el.classList.remove('transform0', 'transform-50', 'transform100')
+          el.classList.add('transform0')
         }, 20)
         setTimeout(() => {
           done()
         },500)
+      } else {
+        // 这里的操作交给touchend去完成
+        setTimeout(() => {
+          done()
+        }, 50000000)
+      }
+    },
+    leave (el, done) {
+      console.log('离开')
+
+      // 将完成钩子赋值给实例
+      this.leaveDone = done;
+      if (!this.manual) {
+        if (this.forward) {
+          el.classList.remove('transform0', 'transform-50', 'transform100')
+          el.classList.add('transform-50')
+        } else {
+          el.classList.remove('transform0', 'transform-50', 'transform100')
+          el.classList.add('transform100')
+        }
+        setTimeout(() => {
+          done()
+        }, 500)
+      } else {
+        // 这里的操作交给touchend去完成
+        setTimeout(() => {
+          done()
+        }, 50000000)
       }
     },
     afterEnter (el) {
       console.log('进入之后')
       if (!this.manual) {
         this.forward = true;
-        el.classList.remove('forward-before-enter', 'backward-before-enter','forward-enter', 'backward-enter')
-      }
-    },
-    beforeLeave (el) {
-      console.log('进入之前')
-      if (!this.manual) {
-        if (this.forward) {
-          el.classList.add('forward-before-leave')
-        } else {
-          el.classList.add('backward-before-leave')
-        }
-      } else {
-        el.classList.add('backward-before-leave2')
-      }
-    },
-    leave (el, done) {
-      console.log('离开')
-      this.leaveDone = done;
-      if (!this.manual) {
-        if (this.forward) {
-          el.classList.add('forward-leave')
-        } else {
-          el.classList.add('backward-leave')
-        }
-        setTimeout(() => {
-          done()
-        }, 500)
-      } else {
-        setTimeout(() => {
-          done()
-        }, 50000000)
+        el.classList.remove('position-absolute', 'transition-all-500','high-z-index', 'low-z-index', 'transform0', 'transform-50', 'transform100')
       }
     },
     afterLeave (el) {
       console.log('离开之后')
       if (!this.manual) {
         this.forward = true;
-        el.classList.remove('forward-before-leave', 'backward-before-leave','forward-leave', 'backward-leave')
+        el.classList.remove('position-absolute', 'transition-all-500','high-z-index', 'low-z-index', 'transform0', 'transform-50', 'transform100')
       }
     },
   }
@@ -224,84 +301,39 @@ export default {
 <style scoped>
 .vue-router-slide {
   position: relative;
-  min-height: 100vh;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 
-
-
-.forward-before-enter2,
-.forward-before-leave2,
-.backward-before-enter2,
-.backward-before-leave2,
-.backward-leave2,
-.backward-enter2{
+.position-absolute{
   position: absolute;
   top: 0;
   left: 0;
 }
 
-.backward-leave2 {
-  transform: translate3d(100%, 0px, 0px) !important;
-}
-.backward-enter2{
-  transform: translate3d(0px, 0px, 0px) !important;
-}
-
-
-.forward-before-enter,
-.forward-before-leave,
-.backward-before-enter,
-.backward-before-leave,
-.backward-leave,
-.backward-enter{
-  position: absolute;
-  top: 0;
-  left: 0;
+.transition-all-500 {
   transition: all .5s;
 }
 
-
-.backward-before-manual-enter,
-.backward-before-manual-leave{
-  position: absolute;
-  top: 0;
-  left: 0;
+.transition-all-250 {
   transition: all .25s;
 }
 
+.high-z-index {
+  z-index: 99;
+}
 
-.forward-before-enter {
-  z-index: 2;
-  transform: translate3d(100%, 0px, 0px);
+.low-z-index {
+  z-index: -1;
 }
-.forward-before-leave{
-  z-index: 1;
-  transform: translate3d(0px, 0px, 0px);
+
+.transform0 {
+  transform: translate3d(0, 0px, 0px);
 }
-.forward-enter {
-  z-index: 2;
-  transform: translate3d(0px, 0px, 0px);
-}
-.forward-leave{
-  z-index: 1;
+.transform-50 {
   transform: translate3d(-50%, 0px, 0px);
 }
-.backward-before-enter {
-  z-index: -1;
-  transform: translate3d(-50%, 0px, 0px);
-}
-.backward-before-leave {
-  z-index: 99;
-  transform: translate3d(0px, 0px, 0px);
-}
-.backward-enter {
-  z-index: -1;
-  transform: translate3d(0px, 0px, 0px);
-}
-.backward-leave {
-  z-index: 99;
+.transform100 {
   transform: translate3d(100%, 0px, 0px);
 }
 </style>

@@ -270,11 +270,6 @@ export default {
         setTimeout(() => {
           done()
         },500)
-      } else {
-        // 这里的操作交给touchend去完成
-        setTimeout(() => {
-          done()
-        }, 50000000)
       }
     },
     leave (el, done) {
@@ -295,11 +290,6 @@ export default {
         setTimeout(() => {
           done()
         }, 500)
-      } else {
-        // 这里的操作交给touchend去完成
-        setTimeout(() => {
-          done()
-        }, 50000000)
       }
     },
     afterEnter (el) {
